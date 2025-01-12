@@ -1,7 +1,7 @@
-Ultima IV for Apple II, Remastered
-==================================
+Ultima IV for Apple II, ECHO+ Edition 
+=====================================
 
-Greetings, traveler! Here you will find the most bug-free edition of Ultima IV for the Apple II ever known. May you enjoy the experience such as it was always meant to be.
+Greetings, traveler! Here you will find the most bug-free edition of Ultima IV for the Apple II ever known. It adds compatibility to the [Street Electronics ECHO+](https://mirrors.apple2.org.za/Apple%20II%20Documentation%20Project/Interface%20Cards/Speech/Street%20Echoplus) sound card. May you enjoy the experience such as it was always meant to be.
 
 This is meant as a "transparent" mod, meaning that any deviations beyond bug fixes are *optional*. You will not see any "enhancements" unless you deliberately invoke them; you can play the game exactly as originally designed.
 
@@ -20,7 +20,7 @@ If you are running the pre-built disk images, or have built your own from the `f
 * During the initial loading screen, before the animated intro, press 'T' to see the "Trainer" menu and enable cheat codes.
 * When asked "Art thou Male or Female?" you can answer 'N' (for "no" or "non-binary"). Your character's gender symbol will be a neutral circle in the "Ztats" screen.
 * In dungeon rooms (and any combat), press digit keys 1 through 8 to make that player active. The others will auto-pass their turns. Press 0 to return to all-party mode.
-* Ctrl+V turns music on and off during play, if Mockingboard was activated in pre-game Options menu.
+* Ctrl+V turns music on and off during play, if the ECHO+ was activated in pre-game Options menu.
 
 ### Trainers
 * When "Control Balloon" is active, [K]limb a second time to drift normally. [D]escend back to steering height, then again to land.
@@ -75,9 +75,8 @@ FIXES MADE
 - (G) Skull use in battlefield should affect combatants, not clear outer world of wandering monsters.
 - (G) Skull cannot be used in *any* dungeon rooms; fixed to behave normally except in abyss, where it is disallowed entirely.
 - (G) Packed image corrupted if header happens to end on page boundary (did not occur with retail alignment).
-- (G) Mockingboard activation menu disables second card if first one is invalid.
 - (G) New music doesn't fully initialize every channel.
-- (G) Demo music silently overruns table until Mockingboard is activated.
+- (G) Demo music silently overruns table until ECHO+ is activated.
 - (G) Dismounting horse in certain townes causes a random NPC to vanish.
 - (E) Two ladders in dungeon "Wrong" are mis-matched.
 - (G) Dungeon "Covetous" has a room whose east exit is obstructed.
@@ -111,9 +110,8 @@ FIXES MADE
 - (G) Gender question did not support non-binary; add a neutral symbol.
 - (G) Proper descriptions for non-human NPCs instead of "phantom".
 - (G) Campfire NPC remains stationary in combat and spits fire.
-- (G) Ctrl+V turns music on and off during play, if Mockingboard was activated in pre-game Options menu.
-- (E) Support IIgs with Mockingboard cards.
-- (G) Support slotted Mockingboard model 4C on Apple //c
+- (G) Ctrl+V turns music on and off during play, if ECHO+ was activated in pre-game Options menu.
+- (E) Support IIgs with ECHO+ cards.
 
 
 Source Code
