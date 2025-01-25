@@ -100,27 +100,24 @@ music_start:
 	dex                 ;BUGFIX: channel data is two bytes wide
 	bpl @next_channel
 
-	ldy #mb_reg_ACR ; Auxiliary Control Register
-	lda #ACR_T1_reload_counters ;Timer 1 => auto repeat
-	sta (mb_io_base),y
+	lda #$09
+	sta aciacmd2
 
-	ldy #mb_reg_T1CL
-	lda mb_irq_clock
-	sta (mb_io_base),y
-
-	ldy #mb_reg_T1CH
-	lda mb_irq_clock + 1
-	sta (mb_io_base),y ;writing to HI starts the timer
-
-	ldy #mb_reg_IER ; Interrupt Enable Register
-	lda #VIA_IER_set + VIA_INT_timer_1
-	sta (mb_io_base),y
+	ldy #0
+:	lda alarm,y	
+	jsr cricket_out
+	iny
+	cpy #12
+	bne :-
 
 	rts
 
+alarm:
+	.byte "S3 0:0:0:02",$8d
+
 cur_psg:
 	.byte 0
-cur_echo_psg:
+cur_cricket_psg:
 	.byte 0	
 chan_current:
 	.byte 0
@@ -185,17 +182,8 @@ mb_irq_handler:
 
 	jsr music_update
 	jsr set_psg_registers
-
-	ldy #mb_reg_T1LL  ;timer 1 latch LO
-	lda mb_irq_clock
-	sta (mb_io_base),y
-
-	iny ;mb_reg_T1LH  ;timer 1 latch HI
-	lda mb_irq_clock + 1
-	sta (mb_io_base),y
-
-	ldy #mb_reg_T1CL  ;reading clock LO starts the timer
-	lda (mb_io_base),y
+	
+	lda aciast2
 
 	pla
 	tay
@@ -240,14 +228,22 @@ music_stop:
 	dex
 	bpl @next_psg
 
-	ldy #mb_reg_IER
-	lda #VIA_IER_clr + VIA_INT_timer_1
-	sta (mb_io_base),y
+	lda #$0B
+	sta aciacmd2
 @done:
 	rts
 
 ;-------------------
 	.segment "PRG_4"
+
+cricket_out:
+	pha
+:	lda aciast2
+	and #$10
+	beq :-
+	pla
+	sta aciarxtx2
+	rts
 
 set_psg_registers:
 	ldx num_psgs
@@ -257,13 +253,13 @@ set_psg_registers:
 	lda cur_psg
 	asl
 	tax
-	bne @echo_psg2 		; if ECHO+, then OR with 0x08 for CHN1 or 0x10 for CHN2
-	lda #$08
-	bne @echo_setpsg
-@echo_psg2:
+	bne @cricket_psg2 		; if Cricket!, then OR with 0x10 for CHN1 or 0x20 for CHN2
 	lda #$10
-@echo_setpsg:
-	sta cur_echo_psg
+	bne @cricket_setpsg
+@cricket_psg2:
+	lda #$20
+@cricket_setpsg:
+	sta cur_cricket_psg
 	lda chan_next_addr,x
 	sta next_values
 	lda chan_next_addr + 1,x
@@ -285,26 +281,11 @@ set_psg_registers:
 	beq @skip
 	sta (cur_values),y
 	pha
-	ldy #mb_reg_ORA
 	txa          ;select register X in cur_psg
-	sta (psg_io),y
-	ldy #mb_reg_ORB
-	lda cur_echo_psg
-	ora #psg_cmd_latch
-	sta (psg_io),y
-	lda cur_echo_psg
-	ora #psg_cmd_inactive
-	sta (psg_io),y
-	ldy #mb_reg_ORA
+	ora cur_cricket_psg
+	jsr cricket_out
 	pla          ;set register X to value A
-	sta (psg_io),y
-	ldy #mb_reg_ORB
-	lda cur_echo_psg
-	ora #psg_cmd_write
-	sta (psg_io),y
-	lda cur_echo_psg
-	ora #psg_cmd_inactive
-	sta (psg_io),y
+	jsr cricket_out
 @skip:
 	dex
 	bpl @next_register
@@ -315,31 +296,32 @@ set_psg_registers:
 ;-------------------
 	.segment "PRG_5"
 
-; 8 octaves, G# 0 through G 8
+; 8 octaves, A 0 through G# 8, Adjusted to the Cricket! PSG clock frequency
 freq_table_lo:
-	.byte $15,$93,$17,$a3,$35,$ce,$6c,$10
-	.byte $b9,$66,$19,$d0,$8b,$49,$0c,$d2
-	.byte $9b,$67,$36,$08,$dc,$b3,$8c,$68
-	.byte $45,$25,$06,$e9,$cd,$b3,$9b,$84
-	.byte $6e,$5a,$46,$34,$23,$12,$03,$f4
-	.byte $e7,$da,$ce,$c2,$b7,$ad,$a3,$9a
-	.byte $91,$89,$81,$7a,$73,$6d,$67,$61
-	.byte $5c,$56,$52,$4d,$49,$45,$41,$3d
-	.byte $3a,$36,$33,$30,$2e,$2b,$29,$26
-	.byte $24,$22,$20,$1f,$1d,$1b,$1a,$18
-	.byte $17,$16,$14,$13,$12,$11,$10,$0f
-	.byte $0e,$0e,$0d,$0c,$0b,$0b,$0a,$0a
+	.byte $E9,$4C,$B8,$2C,$A9,$2C,$B7,$48
+	.byte $DF,$7D,$1F,$C7,$74,$26,$DC,$96
+	.byte $54,$16,$DB,$A4,$70,$3E,$10,$E4
+	.byte $BA,$93,$6E,$4B,$2A,$0B,$EE,$D2
+	.byte $B8,$9F,$88,$72,$5D,$49,$37,$26
+	.byte $15,$06,$F7,$E9,$DC,$D0,$C4,$B9
+	.byte $AF,$A5,$9C,$93,$8B,$83,$7B,$74
+	.byte $6E,$68,$62,$5C,$57,$52,$4E,$49
+	.byte $45,$41,$3E,$3A,$37,$34,$31,$2E
+	.byte $2C,$29,$27,$25,$23,$21,$1F,$1D
+	.byte $1B,$1A,$19,$17,$16,$15,$13,$12
+	.byte $11,$10,$0F,$0F,$0E,$0D,$0C,$0C
+
 
 ;-------------------
 	.segment "PRG_6"
 
 freq_table_hi:
-	.byte $09,$08,$08,$07,$07,$06,$06,$06
-	.byte $05,$05,$05,$04,$04,$04,$04,$03
-	.byte $03,$03,$03,$03,$02,$02,$02,$02
-	.byte $02,$02,$02,$01,$01,$01,$01,$01
-	.byte $01,$01,$01,$01,$01,$01,$01,$00
-	.byte $00,$00,$00,$00,$00,$00,$00,$00
+	.byte $0A,$0A,$09,$09,$08,$08,$07,$07
+	.byte $06,$06,$06,$05,$05,$05,$04,$04
+	.byte $04,$04,$03,$03,$03,$03,$03,$02
+	.byte $02,$02,$02,$02,$02,$02,$01,$01
+	.byte $01,$01,$01,$01,$01,$01,$01,$01
+	.byte $01,$01,$00,$00,$00,$00,$00,$00
 	.byte $00,$00,$00,$00,$00,$00,$00,$00
 	.byte $00,$00,$00,$00,$00,$00,$00,$00
 	.byte $00,$00,$00,$00,$00,$00,$00,$00

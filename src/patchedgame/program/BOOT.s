@@ -809,10 +809,10 @@ num_drives:
 	.byte "Initiate new game", 0
 	bit mockingboard_active
 	bmi @get_input
-	ldx #$0d
+	ldx #$0b
 	ldy #$15
 	jsr j_primm_xy
-	.byte "Activate Echo+", 0
+	.byte "Activate Cricket!", 0
 @get_input:
 	jsr input_char
 	cmp #char_0
@@ -873,13 +873,8 @@ num_drives:
 ;but hobbyist models such as Ian Kim's Mockingboard 4C and 4C+
 ;make that possible. Support them by eliminating the //c check here.
 
-	lda zp_hw_model
-;	beq @get_input   ;Apple //c
-	bmi :+
-	lda #opcode_RTS  ;if not a IIgs, disable init subroutine
-	sta init_mb_iigs
 ;ENHANCEMENT end
-:	lda #$00
+	lda #$00
 	sta mb_1_slot
 	sta mb_1_type
 	sta mb_2_slot
@@ -898,11 +893,11 @@ menu_which_slot:
 	ldy #$10
 	ldx #$0d
 	jsr j_primm_xy
-	.byte "Which slot?", 0
+	.byte "Which port?", 0
 	ldy #$13
 	ldx #$0b
 	jsr j_primm_xy
-	.byte "Enter a number 1-7", 0
+	.byte "Enter a number 1-2", 0
 @get_input:
 	jsr input_char
 	cmp #char_ESC
@@ -910,7 +905,7 @@ menu_which_slot:
 	jmp menu_main
 :	cmp #char_1
 	bcc @get_input
-	cmp #char_7 + 1
+	cmp #char_2 + 1
 	bcs @get_input
 @set_slot:
 	sec
@@ -929,7 +924,6 @@ load_sound_drivers:
 	.byte 0
 	jsr j_mbsi
 	bcc @skip
-	jsr init_mb_iigs
 	lda #opcode_JMP ;reactivate SEL driver
 	sta music_ctl
 	lda #music_off
@@ -1018,63 +1012,6 @@ update_music:
 @same_bank:
 	lda music_bank_tunes,x
 	sta tune_queue_next
-	rts
-
-init_mb_iigs:
-	; Logic from U4MBonGSv22.shk by rubywand
-	; which was adapted from Ultima V patch by Origin
-
-	lda #<mb_irq_handler
-	sta irq_IIgs
-	lda #>mb_irq_handler
-	sta irq_IIgs + 1
-
-	;--- 16-bit 65C816 ASSEMBLY for IIGS only
-
-	; Set native mode
-	.byte $18                ; clc
-	.byte $fb                ; xce
-
-	; Set 16-bit accumulator + index registers
-	.byte $c2,$30            ; rep #$30
-
-	; Disable interrupts from ADB (Apple Desktop Bus)
-	.byte $f4,$0b,$00        ; pea $000b    adbDisable
-	.byte $a2,$03,$23        ; ldx ##$2303  IntSource
-	.byte $22,$00,$00,$e1    ; jsl $e10000  Toolbox Dispatcher
-
-	; Set IIGS Interrupt Manager Vector to U4 mb_irq_handler
-	.byte $f4,$04,$00        ; pea $0004    Interrupt Manager
-	.byte $f4,$00,$00        ; pea $0000
-	.byte $f4,$00,$05        ; pea $0500    ##mb_irq_handler
-	.byte $a2,$03,$10        ; ldx ##$1003  SetVector
-	.byte $22,$00,$00,$e1    ; jsl $e10000  Toolbox Dispatcher
-
-	; Set emulator mode
-	.byte $38                ; sec
-	.byte $fb                ; xce
-
-	; Set 8-bit accumulator + index registers
-	.byte $e2,$30            ; sep #$30
-
-	;--- 8-bit 6502 ASSEMBLY
-
-	ldx mb_1_slot
-	jsr enable_iigs_slot
-	ldx mb_2_slot
-	jsr enable_iigs_slot
-
-	rts
-
-enable_iigs_slot:
-	lda #$01	; convert integer to bitflag (2 ^ N)
-:	dex
-	beq @set_slot_flag
-	asl
-	bne :-
-@set_slot_flag:
-	ora hw_SLTROMSEL
-	sta hw_SLTROMSEL
 	rts
 
 

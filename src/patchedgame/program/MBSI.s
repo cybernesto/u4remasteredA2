@@ -19,7 +19,7 @@ vectors_save:
 vectors_save_size = * - vectors_save
 cur_psg:
 	.byte 0
-cur_echo_psg:
+cur_cricket_psg:
 	.byte 0
 chan:
 	.res 12
@@ -287,17 +287,13 @@ set_psg_lines_output:
 	sta psg_io
 	lda chan_io_base + 1,x
 	sta psg_io + 1
-
-	ldy #mb_reg_DDRA
-	lda #$ff     ;port A (data) all bits output
-	sta (psg_io),y
-
-	ldy #mb_reg_DDRB
-	lda #$1F     ;port B (cmd) 5 bits output. ECHO+ uses PB3 and PB4 as CS for PSG 1 and 2
-	sta (psg_io),y
-
 	dec cur_psg
 	bpl @next
+
+	lda #$0B
+	sta aciacmd2
+	lda #$9e
+	sta aciactl2
 	rts
 
 init_psg_registers:
@@ -320,11 +316,6 @@ init_psg_registers:
 	sta psg_io
 	lda chan_io_base + 1,x
 	sta psg_io + 1
-	ldy #mb_reg_ORB
-	lda #psg_cmd_reset
-	sta (psg_io),y
-	lda #psg_cmd_inactive
-	sta (psg_io),y
 	ldy #psg_reg_last
 @next_register:
 	lda #$00
@@ -338,6 +329,8 @@ init_psg_registers:
 	bpl @next_register
 	dec cur_psg
 	bpl @next_psg
+	lda #$a1           ; reset Cricket!
+	jsr cricket_out
 	jsr set_psg_registers
 	rts
 
@@ -356,9 +349,6 @@ activate_irq:
 	cmp #>mb_irq_handler
 	bne @abort
 
-	ldy #mb_reg_IER
-	lda #VIA_IER_set + VIA_INT_timer_1
-	sta (mb_io_base),y
 	cli
 	rts
 
@@ -366,6 +356,15 @@ activate_irq:
 	pla
 	pla
 	clc
+	rts
+
+cricket_out:
+	pha
+:	lda aciast2
+	and #$10
+	beq :-
+	pla
+	sta aciarxtx2
 	rts
 
 set_psg_registers:
@@ -376,13 +375,13 @@ set_psg_registers:
 	lda cur_psg
 	asl
 	tax
-	bne @echo_psg2		; if ECHO+, then OR cmd with 0x08 for CHN1 or 0x10 for CHN2
-	lda #$08
-	bne @echo_setpsg
-@echo_psg2:
+	bne @cricket_psg2 		; if Cricket!, then OR with 0x10 for CHN1 or 0x20 for CHN2
 	lda #$10
-@echo_setpsg:
-	sta cur_echo_psg
+	bne @cricket_setpsg
+@cricket_psg2:
+	lda #$20
+@cricket_setpsg:
+	sta cur_cricket_psg
 	lda chan_next_addr,x
 	sta next_values
 	lda chan_next_addr + 1,x
@@ -395,7 +394,7 @@ set_psg_registers:
 	sta psg_io
 	lda chan_io_base + 1,x
 	sta psg_io + 1
-	ldx #$0a
+	ldx #psg_reg_level_C
 @next_register:
 	txa
 	tay
@@ -404,26 +403,11 @@ set_psg_registers:
 	beq @skip
 	sta (cur_values),y
 	pha
-	ldy #mb_reg_ORA
 	txa          ;select register X in cur_psg
-	sta (psg_io),y
-	ldy #mb_reg_ORB
-	lda cur_echo_psg
-	ora #psg_cmd_latch
-	sta (psg_io),y
-	lda cur_echo_psg
-	ora #psg_cmd_inactive
-	sta (psg_io),y
-	ldy #mb_reg_ORA
+	ora cur_cricket_psg
+	jsr cricket_out
 	pla          ;set register X to value A
-	sta (psg_io),y
-	ldy #mb_reg_ORB
-	lda cur_echo_psg
-	ora #psg_cmd_write
-	sta (psg_io),y
-	lda cur_echo_psg
-	ora #psg_cmd_inactive
-	sta (psg_io),y
+	jsr cricket_out
 @skip:
 	dex
 	bpl @next_register

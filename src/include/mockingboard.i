@@ -110,3 +110,9 @@ voice_disable_tone_C  = %00000001
 		voice_disable_noise_B + \
 		voice_disable_noise_C
 .linecont -
+
+; ACIA registers for a sound module connected through the serial port
+aciarxtx2       = $C0A8
+aciast2         = $C0A9
+aciacmd2        = $C0AA
+aciactl2        = $C0AB

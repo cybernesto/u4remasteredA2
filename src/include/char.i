@@ -47,6 +47,7 @@ char_slash = $af
 char_num_first = $b0
 char_0 = $b0
 char_1 = $b1
+char_2 = $b2
 char_3 = $b3
 char_7 = $b7
 char_9 = $b9
