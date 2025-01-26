@@ -888,29 +888,7 @@ one_mockingboard:
 	sta mb_count
 	tax
 	sty mb_1_type,x
-menu_which_slot:
-	jsr clear_window
-	ldy #$10
-	ldx #$0d
-	jsr j_primm_xy
-	.byte "Which port?", 0
-	ldy #$13
-	ldx #$0b
-	jsr j_primm_xy
-	.byte "Enter a number 1-2", 0
-@get_input:
-	jsr input_char
-	cmp #char_ESC
-	bne :+
-	jmp menu_main
-:	cmp #char_1
-	bcc @get_input
-	cmp #char_2 + 1
-	bcs @get_input
-@set_slot:
-	sec
-	sbc #char_num_first
-	tay
+	ldy #$02       ; the Cricket! is always connected to Port 2
 	lda mb_count
 	and #$02
 	tax
